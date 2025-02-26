@@ -25,6 +25,9 @@ const App: () => JSX.Element = () => {
   const captionTimeout = useRef<any>();
   const keepAliveInterval = useRef<any>();
 
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [transcriptChunks, setTranscriptChunks] = useState<string>('');
+
   useEffect(() => {
     setupMicrophone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -43,6 +46,21 @@ const App: () => JSX.Element = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneState]);
 
+  const downloadRecording = () => {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm '});
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = audioUrl;
+    downloadLink.download = `recording-${new Date().toISOString()}.webm`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(audioUrl);
+  }
+
+
+
   useEffect(() => {
     if (!microphone) return;
     if (!connection) return;
@@ -53,6 +71,7 @@ const App: () => JSX.Element = () => {
       if (e.data.size > 0) {
         connection?.send(e.data);
       }
+      setAudioChunks(prevChunks => [...prevChunks, e.data]);
     };
 
     const onTranscript = (data: LiveTranscriptionEvent) => {
@@ -136,6 +155,9 @@ const App: () => JSX.Element = () => {
                   <MicrophoneIcon className="w-8 h-8 text-black" micOpen={microphoneState === MicrophoneState.Open}></MicrophoneIcon>
                 </button>
               </div>
+              <button className="text-white" onClick={() => {downloadRecording();}}>
+                DL
+              </button>
             </div>
           </div>
         </div>
