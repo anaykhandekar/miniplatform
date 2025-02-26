@@ -27,6 +27,9 @@ const SCRIPTS = [
 
 export default function ScriptPage() {
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadUrl, setUploadUrl] = useState<string | null>(null);
+
   const scriptContent = selectedScript 
     ? SCRIPTS.find(script => script.id === selectedScript)?.content 
     : null;
@@ -38,7 +41,49 @@ export default function ScriptPage() {
     toggleMicrophone,
     downloadRecording,
     downloadTranscript,
+    downloadAudioBlob,
+    downloadTextBlob,
+    getFullTranscript
   } = useRecorder("Script Mode - Start speaking");
+
+  const handleUploadAudio = async () => {
+    try {
+        setIsUploading(true);
+
+        const recordingBlob = await downloadAudioBlob();
+        
+        if (recordingBlob === null) {
+            return;
+        }
+
+        const scriptContent = SCRIPTS.find(script => script.id === selectedScript)?.content || '';
+
+        // Create form data to send to API
+        const formData = new FormData();
+        formData.append('file', recordingBlob, 'recording.mp3');
+        formData.append('scriptId', selectedScript!);
+        formData.append('scriptText', scriptContent);
+        formData.append('transcription', getFullTranscript());
+
+        const response = await fetch('/api/s3', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`Recording submitted successfully!`);
+        } else {
+            throw new Error(data.error || "Upload failed");
+        }
+    } catch (error) {
+        console.error("Error saving recording:", error);
+        alert("Failed to save recording. Please try again.")
+    } finally {
+        setIsUploading(false);
+    }
+  }
   
   if (!selectedScript) {
     return (
@@ -110,9 +155,10 @@ export default function ScriptPage() {
           <div className="absolute top-4 right-4 flex space-x-2">
             <button 
               className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
-              onClick={() => {downloadRecording(); downloadTranscript();}}
+              onClick={handleUploadAudio}
+              disabled={isUploading}
             >
-              Save Recording
+              {isUploading ? "Submitting..." : "Submit Recording"}
             </button>
           </div>
         </div>

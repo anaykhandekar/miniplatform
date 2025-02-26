@@ -73,7 +73,21 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
     console.log(connectionState)
   }, [connectionState]);
 
+  const downloadAudioBlob = () => {
+    if (audioChunks.length === 0) return null;
+    const blob = new Blob(audioChunks, { type: 'audio/mpeg' });
+    return blob;
+  }
 
+  const downloadTextBlob = () => {
+    if (transcriptChunks.trim()) return null;
+    const blob = new Blob([transcriptChunks], { type: 'text/plain' });
+    return blob;
+  }
+
+  const getFullTranscript = () => {
+    return transcriptChunks;
+  }
 
   const downloadRecording = () => {
     if (audioChunks.length === 0) return;
@@ -213,6 +227,9 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
     toggleMicrophone,
     downloadRecording,
     downloadTranscript,
+    downloadAudioBlob,
+    downloadTextBlob,
+    getFullTranscript,
     
     // Raw access if needed
     startMicrophone,
