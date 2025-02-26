@@ -12,13 +12,9 @@ import {
   MicrophoneState,
   useMicrophone,
 } from "../context/MicrophoneContextProvider";
-import Visualizer from "./Visualizer";
-import { MicrophoneIcon } from "./icons/MicrophoneIcon";
 
-const App: () => JSX.Element = () => {
-  const [caption, setCaption] = useState<string | undefined>(
-    "Powered by Deepgram"
-  );
+export function useRecorder(initialCaption = "Powered by Deepgram") {
+  const [caption, setCaption] = useState<string | undefined>(initialCaption);
   const { connection, connectToDeepgram, connectionState } = useDeepgram();
   const { setupMicrophone, microphone, startMicrophone, stopMicrophone, microphoneState } =
     useMicrophone();
@@ -27,9 +23,19 @@ const App: () => JSX.Element = () => {
 
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [transcriptChunks, setTranscriptChunks] = useState<string>('');
+  const [fullTranscript, setFullTranscript] = useState<string>('');
 
   useEffect(() => {
     setupMicrophone();
+    
+    // Cleanup function to stop microphone when component unmounts
+    return () => {
+      if (microphoneState === MicrophoneState.Open) {
+        stopMicrophone();
+      }
+      clearTimeout(captionTimeout.current);
+      clearInterval(keepAliveInterval.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -47,7 +53,9 @@ const App: () => JSX.Element = () => {
   }, [microphoneState]);
 
   const downloadRecording = () => {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm '});
+    if (audioChunks.length === 0) return;
+    
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const audioUrl = URL.createObjectURL(audioBlob);
 
     const downloadLink = document.createElement('a');
@@ -79,8 +87,6 @@ const App: () => JSX.Element = () => {
     if (!connection) return;
 
     const onData = (e: BlobEvent) => {
-      // iOS SAFARI FIX:
-      // Prevent packetZero from being sent. If sent at size 0, the connection will close. 
       if (e.data.size > 0) {
         connection?.send(e.data);
       }
@@ -91,15 +97,17 @@ const App: () => JSX.Element = () => {
       const { is_final: isFinal, speech_final: speechFinal } = data;
       let thisCaption = data.channel.alternatives[0].transcript;
 
-      console.log("thisCaption", thisCaption);
+      thisCaption = thisCaption.trim();
+      
       if (thisCaption !== "") {
-        console.log('thisCaption !== ""', thisCaption);
+        console.log("Transcript received:", thisCaption);
         setCaption(thisCaption);
       }
 
-      if (isFinal && speechFinal) {
+      if (isFinal && speechFinal && thisCaption !== "") {
         clearTimeout(captionTimeout.current);
-        setTranscriptChunks(prevChunks => prevChunks + ' ' + thisCaption);
+        setTranscriptChunks(prevChunks => prevChunks + (prevChunks ? ' ' : '') + thisCaption);
+        setFullTranscript(prevTranscript => prevTranscript + (prevTranscript ? '\n' : '') + thisCaption);
         captionTimeout.current = setTimeout(() => {
           setCaption(undefined);
           clearTimeout(captionTimeout.current);
@@ -116,8 +124,8 @@ const App: () => JSX.Element = () => {
 
     return () => {
       // prettier-ignore
-      connection.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
-      microphone.removeEventListener(MicrophoneEvents.DataAvailable, onData);
+      connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+      microphone?.removeEventListener(MicrophoneEvents.DataAvailable, onData);
       clearTimeout(captionTimeout.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,39 +153,30 @@ const App: () => JSX.Element = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneState, connectionState]);
 
-  return (
-    <>
-      <div className="flex h-full antialiased">
-        <div className="flex flex-row h-full w-full">
-          <div className="flex flex-col flex-auto h-full">
-            {/* height 100% minus 8rem */}
-            <div className="relative w-full h-full">
-              {microphone && <Visualizer microphone={microphone} />}
-              <div className="absolute bottom-[8rem] inset-x-0 max-w-4xl mx-auto text-center">
-                {caption && <span className="bg-black/70 p-8">{caption}</span>}
-              </div>
-              <div className="absolute bottom-0 inset-x-0 flex w-full items-center justify-center mb-5">
-                <button 
-                  className="flex items-center justify-center bg-white rounded-full p-4 shadow-md transition-transform hover:scale-110"
-                  onClick={() => {
-                    if (microphoneState === MicrophoneState.Open) {
-                      stopMicrophone();
-                    } else {
-                      startMicrophone();
-                    }
-                  }}>
-                  <MicrophoneIcon className="w-8 h-8 text-black" micOpen={microphoneState === MicrophoneState.Open}></MicrophoneIcon>
-                </button>
-              </div>
-              <button className="text-white" onClick={() => {downloadRecording(); downloadTranscript();}}>
-                DL
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
+  const toggleMicrophone = () => {
+    if (microphoneState === MicrophoneState.Open) {
+      stopMicrophone();
+    } else {
+      startMicrophone();
+    }
+  };
 
-export default App;
+  return {
+    // State
+    caption,
+    microphone,
+    microphoneState,
+    audioChunks,
+    transcriptChunks,
+    fullTranscript,
+    
+    // Actions
+    toggleMicrophone,
+    downloadRecording,
+    downloadTranscript,
+    
+    // Raw access if needed
+    startMicrophone,
+    stopMicrophone,
+  };
+}
