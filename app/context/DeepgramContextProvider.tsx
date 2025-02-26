@@ -54,7 +54,7 @@ const DeepgramContextProvider: FunctionComponent<
    * @returns A Promise that resolves when the connection is established.
    */
   const connectToDeepgram = async (options: LiveSchema, endpoint?: string) => {
-    const key = await getApiKey();
+    const key = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY
     const deepgram = createClient(key);
 
     const conn = deepgram.listen.live(options, endpoint);
