@@ -15,6 +15,7 @@ import {
   useState,
   ReactNode,
   FunctionComponent,
+  useEffect,
 } from "react";
 
 interface DeepgramContextType {

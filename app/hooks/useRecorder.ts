@@ -14,10 +14,10 @@ import {
 } from "../context/MicrophoneContextProvider";
 
 export function useRecorder(initialCaption = "Powered by Deepgram") {
+
   const [caption, setCaption] = useState<string | undefined>(initialCaption);
-  const { connection, connectToDeepgram, connectionState } = useDeepgram();
-  const { setupMicrophone, microphone, startMicrophone, stopMicrophone, microphoneState } =
-    useMicrophone();
+  const { connection, connectToDeepgram, disconnectFromDeepgram, connectionState } = useDeepgram();
+  const { setupMicrophone, microphone, startMicrophone, stopMicrophone, microphoneState } = useMicrophone();
   const captionTimeout = useRef<any>();
   const keepAliveInterval = useRef<any>();
 
@@ -26,13 +26,20 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
   const [fullTranscript, setFullTranscript] = useState<string>('');
 
   useEffect(() => {
-    setupMicrophone();
+    const setup = async () => {
+      try {
+        await setupMicrophone();
+        console.log("Microphone setup complete");
+      } catch (error) {
+        console.error("Failed to setup microphone:", error);
+      }
+    };
+    
+    setup();
     
     // Cleanup function to stop microphone when component unmounts
     return () => {
-      if (microphoneState === MicrophoneState.Open) {
-        stopMicrophone();
-      }
+      stopMicrophone();
       clearTimeout(captionTimeout.current);
       clearInterval(keepAliveInterval.current);
     };
@@ -40,17 +47,33 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
   }, []);
 
   useEffect(() => {
-    if (microphoneState === MicrophoneState.Ready) {
-      connectToDeepgram({
-        model: "nova-3",
-        interim_results: true,
-        smart_format: true,
-        filler_words: true,
-        utterance_end_ms: 3000,
-      });
-    }
+    const initializeConnection = async () => {
+      if (connectionState !== 1) {
+        console.log(`Connection not open, connecting to Deepgram`);
+        try {
+          await connectToDeepgram({
+            model: "nova-3",
+            interim_results: true,
+            smart_format: true,
+            filler_words: true,
+            utterance_end_ms: 3000,
+          });
+          console.log(`Successfully connected to Deepgram`);
+        } catch (error) {
+          console.error("Failed to connect to Deepgram:", error);
+        }
+      }
+    };
+
+    initializeConnection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [microphoneState]);
+  }, [connectionState]);
+
+  useEffect(() => {
+    console.log(connectionState)
+  }, [connectionState]);
+
+
 
   const downloadRecording = () => {
     if (audioChunks.length === 0) return;
@@ -83,12 +106,19 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
   }
 
   useEffect(() => {
-    if (!microphone) return;
-    if (!connection) return;
+    if (!microphone) { 
+        console.log("Microphone not set up - no listeners set up.")
+        return; 
+    }
+    if (!connection) {
+        console.log("Connection not set up - no listeners set up.")
+        return;
+    }
 
     const onData = (e: BlobEvent) => {
       if (e.data.size > 0) {
         connection?.send(e.data);
+        console.log(`Blob sent ${e.data.size}`)
       }
       setAudioChunks(prevChunks => [...prevChunks, e.data]);
     };
@@ -114,22 +144,31 @@ export function useRecorder(initialCaption = "Powered by Deepgram") {
         }, 3000);
       }
     };
-
-    if (connectionState === LiveConnectionState.OPEN) {
+    
+    try {
       connection.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
-      microphone.addEventListener(MicrophoneEvents.DataAvailable, onData);
-
-      startMicrophone();
+      console.log("Receiving set up.")
+    } catch (error) {
+      console.error("Error adding listener for LiveTranscriptionEvents.Transcript:", error);
     }
+
+    try {
+      microphone.addEventListener(MicrophoneEvents.DataAvailable, onData);
+      console.log("Sending set up.")
+    } catch (error) {
+      console.error("Error adding event listener for MicrophoneEvents.DataAvailable:", error);
+    }
+    
 
     return () => {
       // prettier-ignore
       connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+      disconnectFromDeepgram();
       microphone?.removeEventListener(MicrophoneEvents.DataAvailable, onData);
       clearTimeout(captionTimeout.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectionState]);
+  }, [microphone, connectionState]);
 
   useEffect(() => {
     if (!connection) return;
