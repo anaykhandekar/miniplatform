@@ -59,7 +59,20 @@ const App: () => JSX.Element = () => {
     URL.revokeObjectURL(audioUrl);
   }
 
+  const downloadTranscript = () => {
+    if (!transcriptChunks.trim()) return;
+    
+    const transcriptBlob = new Blob([transcriptChunks], { type: 'text/plain' });
+    const transcriptUrl = URL.createObjectURL(transcriptBlob);
 
+    const downloadLink = document.createElement('a');
+    downloadLink.href = transcriptUrl;
+    downloadLink.download = `transcript-${new Date().toISOString()}.txt`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(transcriptUrl);
+  }
 
   useEffect(() => {
     if (!microphone) return;
@@ -86,6 +99,7 @@ const App: () => JSX.Element = () => {
 
       if (isFinal && speechFinal) {
         clearTimeout(captionTimeout.current);
+        setTranscriptChunks(prevChunks => prevChunks + ' ' + thisCaption);
         captionTimeout.current = setTimeout(() => {
           setCaption(undefined);
           clearTimeout(captionTimeout.current);
@@ -155,7 +169,7 @@ const App: () => JSX.Element = () => {
                   <MicrophoneIcon className="w-8 h-8 text-black" micOpen={microphoneState === MicrophoneState.Open}></MicrophoneIcon>
                 </button>
               </div>
-              <button className="text-white" onClick={() => {downloadRecording();}}>
+              <button className="text-white" onClick={() => {downloadRecording(); downloadTranscript();}}>
                 DL
               </button>
             </div>
