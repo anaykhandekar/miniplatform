@@ -10,6 +10,7 @@ type Recording = {
   script_text: string;
   transcription: string;
   accuracy_score: number | null;
+  noise_level: number | null;
   s3_filepath: string;
   audio_url?: string;
 };
@@ -185,6 +186,21 @@ export default function RecordingDetailPage({ params }: { params: { trackId: str
                     style={{ width: `${Math.round(recording.accuracy_score * 100)}%` }} 
                     className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600"
                   ></div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {recording.noise_level !== null && (
+            <div className="mt-4 bg-gray-800 rounded-lg p-4">
+              <h3 className="font-medium text-gray-300 mb-2">Noise Level:</h3>
+              <div className="relative pt-1">
+                <div className="flex mb-2 items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-green-600 text-white">
+                      {recording.noise_level} dB
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
