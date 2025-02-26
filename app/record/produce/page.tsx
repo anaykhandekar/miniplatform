@@ -6,22 +6,32 @@ import Visualizer from "../../components/Visualizer";
 import { MicrophoneIcon } from "../../components/icons/MicrophoneIcon";
 import { MicrophoneState } from "../../context/MicrophoneContextProvider";
 
-// Sample scripts
+// Updated scripts with more professional and varied content
 const SCRIPTS = [
   {
     id: "1",
-    title: "Introduction Speech",
-    content: "Hello everyone, my name is [Your Name]. I'm excited to be here today to talk about [Topic]. In the next few minutes, I'll share some insights about [Main Point 1], [Main Point 2], and [Main Point 3]. Let's get started!"
+    title: "Professional Introduction",
+    content: "Hello everyone, I'm pleased to introduce myself. I'm a software engineer with five years of experience in full-stack development. My expertise includes React, Node.js, and cloud infrastructure. I've worked on projects ranging from e-commerce platforms to data visualization tools. I'm passionate about creating clean, maintainable code and solving complex problems with elegant solutions."
   },
   {
     id: "2",
-    title: "Product Presentation",
-    content: "Today I'm thrilled to introduce our newest product, [Product Name]. This innovative solution addresses [Problem] by providing [Solution]. Our customers have already seen [Benefit 1] and [Benefit 2]. Let me walk you through the key features..."
+    title: "Project Presentation",
+    content: "Today I'd like to present our latest project, a speech analysis platform that helps users improve their communication skills. This application records and transcribes speech in real-time, providing metrics on clarity, pacing, and vocabulary usage. Our beta testers have reported a 30% improvement in presentation confidence and a significant reduction in filler words. The technology combines WebRTC for audio capture with advanced AI models for speech processing."
   },
   {
     id: "3",
-    title: "Technical Explanation",
-    content: "The system architecture consists of three main components: the frontend interface, the middleware processing layer, and the database backend. When a user initiates a request, it first passes through the authentication module before being routed to the appropriate service handler..."
+    title: "Technical Overview",
+    content: "Our architecture follows a microservices approach with three core components. The frontend is built with Next.js and React, providing a responsive interface across devices. The middleware layer uses Node.js with Express, handling authentication, request validation, and service orchestration. For data persistence, we've implemented a PostgreSQL database with Supabase for real-time capabilities. All components are containerized with Docker and deployed on AWS using ECS for scalability."
+  },
+  {
+    id: "4",
+    title: "Customer Success Story",
+    content: "I'd like to share how our solution helped Acme Corporation overcome their challenges. Before implementing our platform, they struggled with inconsistent data across departments and slow reporting cycles. After our three-month implementation, they achieved real-time visibility into operations, reduced report generation time by 85%, and identified cost-saving opportunities worth $1.2 million annually. The key to success was our collaborative approach and focus on user adoption throughout the organization."
+  },
+  {
+    id: "5",
+    title: "Product Demo Introduction",
+    content: "Welcome to this demonstration of our speech analytics dashboard. In the next few minutes, I'll walk you through the main features and show you how easy it is to get started. You'll see how to record your first speech sample, review the automated analysis, and track your improvement over time. I'll also highlight our integration capabilities with popular video conferencing platforms. By the end of this demo, you'll understand how our tool can transform your communication effectiveness."
   }
 ];
 
