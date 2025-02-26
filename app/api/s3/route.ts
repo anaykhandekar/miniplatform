@@ -48,13 +48,12 @@ export async function POST(request: Request) {
 
     const recordId = newRecord.id
 
-    if (!file || !scriptId) {
-      return NextResponse.json({ error: 'File and scriptId are required' }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: 'File is required' }, { status: 400 });
     }
     
     const buffer = Buffer.from(await file.arrayBuffer());
-    const folderPath = `scripts/${scriptId}/`;
-    const fileName = `${folderPath}${recordId}.mpeg`;
+    const fileName = `${recordId}.mpeg`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.S3_BUCKET_NAME!,
@@ -89,4 +88,61 @@ export async function POST(request: Request) {
     console.error('Error uploading to S3:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
+
+  
 }
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+    
+    if (key) {
+      const command = new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME!,
+        Key: key,
+      });
+      
+      const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      
+      return NextResponse.json({ url });
+    }
+    
+    const { data, error } = await supabase
+      .from('recordings')
+      .select('*')
+      .order('submission_date', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching recordings:', error);
+      return NextResponse.json({ error: 'Failed to fetch recordings' }, { status: 500 });
+    }
+    
+    // For each recording, generate a signed URL
+    const recordingsWithUrls = await Promise.all(
+      data.map(async (recording) => {
+        if (recording.s3_filepath) {
+          const command = new GetObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME!,
+            Key: recording.s3_filepath,
+          });
+          
+          const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+          
+          return {
+            ...recording,
+            audio_url: url
+          };
+        }
+        
+        return recording;
+      })
+    );
+    
+    return NextResponse.json({ recordings: recordingsWithUrls });
+  } catch (error) {
+    console.error('Error processing request:', error);
+    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+  }
+}
+
