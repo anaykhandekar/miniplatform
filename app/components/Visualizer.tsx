@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { MicrophoneState, useMicrophone } from "../context/MicrophoneContextProvider";
 
 const interpolateColor = (
   startColor: number[],
@@ -19,18 +20,44 @@ const Visualizer = ({ microphone }: { microphone: MediaRecorder }) => {
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioContext.createAnalyser();
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const { microphoneState } = useMicrophone();
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const source = audioContext.createMediaStreamSource(microphone.stream);
-    source.connect(analyser);
-
-    draw();
+    if (microphoneState === MicrophoneState.Open) {
+      const source = audioContext.createMediaStreamSource(microphone.stream);
+      source.connect(analyser);
+      
+      draw();
+    } else {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const context = canvas.getContext("2d");
+        if (context) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    }
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [microphoneState]);
 
   const draw = (): void => {
-    const canvas = canvasRef.current;
+    if (microphoneState !== MicrophoneState.Open) {
+      return;
+    }
 
+    const canvas = canvasRef.current;
     if (!canvas) return;
 
     canvas.style.width = "100%";
@@ -42,7 +69,7 @@ const Visualizer = ({ microphone }: { microphone: MediaRecorder }) => {
     const width = canvas.width;
     const height = canvas.height;
 
-    requestAnimationFrame(draw);
+    animationFrameRef.current = requestAnimationFrame(draw);
 
     analyser.getByteFrequencyData(dataArray);
 

@@ -13,13 +13,14 @@ import {
   useMicrophone,
 } from "../context/MicrophoneContextProvider";
 import Visualizer from "./Visualizer";
+import { MicrophoneIcon } from "./icons/MicrophoneIcon";
 
 const App: () => JSX.Element = () => {
   const [caption, setCaption] = useState<string | undefined>(
     "Powered by Deepgram"
   );
   const { connection, connectToDeepgram, connectionState } = useDeepgram();
-  const { setupMicrophone, microphone, startMicrophone, microphoneState } =
+  const { setupMicrophone, microphone, startMicrophone, stopMicrophone, microphoneState } =
     useMicrophone();
   const captionTimeout = useRef<any>();
   const keepAliveInterval = useRef<any>();
@@ -114,13 +115,26 @@ const App: () => JSX.Element = () => {
   return (
     <>
       <div className="flex h-full antialiased">
-        <div className="flex flex-row h-full w-full overflow-x-hidden">
+        <div className="flex flex-row h-full w-full">
           <div className="flex flex-col flex-auto h-full">
             {/* height 100% minus 8rem */}
             <div className="relative w-full h-full">
               {microphone && <Visualizer microphone={microphone} />}
-              <div className="absolute bottom-[8rem]  inset-x-0 max-w-4xl mx-auto text-center">
+              <div className="absolute bottom-[8rem] inset-x-0 max-w-4xl mx-auto text-center">
                 {caption && <span className="bg-black/70 p-8">{caption}</span>}
+              </div>
+              <div className="absolute bottom-0 inset-x-0 flex w-full items-center justify-center mb-5">
+                <button 
+                  className="flex items-center justify-center bg-white rounded-full p-4 shadow-md transition-transform hover:scale-110"
+                  onClick={() => {
+                    if (microphoneState === MicrophoneState.Open) {
+                      stopMicrophone();
+                    } else {
+                      startMicrophone();
+                    }
+                  }}>
+                  <MicrophoneIcon className="w-8 h-8 text-black" micOpen={microphoneState === MicrophoneState.Open}></MicrophoneIcon>
+                </button>
               </div>
             </div>
           </div>

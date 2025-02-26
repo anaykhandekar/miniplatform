@@ -55,6 +55,7 @@ const DeepgramContextProvider: FunctionComponent<
    */
   const connectToDeepgram = async (options: LiveSchema, endpoint?: string) => {
     const key = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY
+    //NEED TO CHANGE LATER
     const deepgram = createClient(key);
 
     const conn = deepgram.listen.live(options, endpoint);
